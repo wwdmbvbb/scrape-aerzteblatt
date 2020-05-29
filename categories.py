@@ -1,14 +1,15 @@
 class Categories:
     class __Categories:
         def __init__(self):
-            self._categories = dict()
-            with open('categories') as f:
-                lines = f.readlines()
-                for line in lines:
-                    items = line.split(':')
-                    key = int(items[0].strip())
-                    value = items[1].strip()
-                    self._categories[key] = value
+            self._categories = {16: 'Deutsches Ärzteblatt',
+                                32: 'Deutsches Ärzteblatt PP',
+                                256: 'Perspektiven',
+                                128: 'Praxis',
+                                64: 'Medizin Studieren',
+                                1: 'News',
+                                2: 'Blogs',
+                                4: 'Foren',
+                                8: 'Preise'}
 
         def print(self):
             print('Kategorien: ')
@@ -27,8 +28,7 @@ class Categories:
             else:
                 return 'Journal Article'
 
-
-    instance : __Categories = None
+    instance: __Categories = None
 
     def __init__(self):
         if not Categories.instance:
