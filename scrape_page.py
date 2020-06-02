@@ -3,13 +3,16 @@ from bs4 import BeautifulSoup
 
 from consts import *
 from results import AerzteblattResultSet, AerzteblattResult
+from urllib.parse import quote_plus
 
 
 class ScrapePage:
 
     def __init__(self, search_string: str = '', search_cat: int = None, page: int = 1):
         filter_str = '' if search_cat is None else '&{}={}'.format(parameter_name_filter, search_cat)
-        self._url = '{}{}?{}={}{}&{}={}'.format(base_url, search, parameter_name_search, search_string, filter_str,
+        self._url = '{}{}?{}={}{}&{}={}'.format(base_url, search, parameter_name_search,
+                                                quote_plus(search_string.encode('iso-8859-1')),
+                                                filter_str,
                                                 parameter_name_page, page)
         self._search_cat = search_cat
 

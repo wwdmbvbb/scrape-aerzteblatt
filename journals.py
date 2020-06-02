@@ -1,12 +1,13 @@
+from datetime import datetime
 from typing import Optional
 
 import requests
 from bs4 import BeautifulSoup
 
-from consts import date_to_number, base_url
+from consts import date_to_number, base_url, parse_date
 
 
-def _parse(url) -> Optional[str]:
+def _parse(url) -> Optional[datetime]:
     try:
         response = requests.get(base_url + url)
     except(
@@ -26,13 +27,7 @@ def _parse(url) -> Optional[str]:
             date = date_item.string
             if ',' in date:
                 date = date.split(',')[1].strip()
-                parts = date.split(' ')
-                if len(parts) < 3:
-                    return None
-                number = date_to_number.get(parts[1], None)
-                if number is None:
-                    return None
-                return '{}{}.{}'.format(parts[0], number, parts[2])
+                return parse_date(date)
 
 
 class Journals:
@@ -40,7 +35,7 @@ class Journals:
         def __init__(self):
             self._dates = dict()
 
-        def get_journal_date(self, url) -> Optional[str]:
+        def get_journal_date(self, url) -> Optional[datetime]:
             if url is None:
                 return None
             if url in self._dates:

@@ -1,4 +1,8 @@
+from datetime import datetime
+from typing import Optional
+
 import requests
+import re
 from bs4 import BeautifulSoup
 
 from consts import base_url
@@ -15,7 +19,7 @@ class ScrapeArticle:
         self.message = None
         self.pdf_link = None
         self.journal_link = None
-        self.date = None
+        self.date: Optional[datetime] = None
 
         try:
             response = requests.get(self._url)
@@ -58,5 +62,29 @@ class ScrapeArticle:
                 link = journal_link['href']
                 if link is not None:
                     self.journal_link = link
+
+        news_article = soup.find('div', {'class': 'news'})
+        if news_article is not None:
+            copyright_spans = news_article.findAll('span', {'class': 'nobr'})
+            c_string = None
+            if copyright_spans is not None and len(copyright_spans) > 0:
+                for span in copyright_spans:
+                    if '©' in span.text:
+                        c_items = span.find('i')
+                        if c_items is not None:
+                            c_string = c_items.string
+                            break
+            else:
+                text = news_article.text.replace('Anzeige', '')
+                start_index = text.index('©') + 1
+                c = text[start_index:]
+                end_index = c.find('/aerzteblatt.de')
+                if end_index is None:
+                    end_index = 20
+                c_string = c[:end_index]
+
+            if c_string is not None:
+                c_s = [s.strip() for s in c_string.split('/')]
+                self.authors = self.authors.union(c_s).difference({'aerzteblatt.de'})
 
         self.date = Journals().instance.get_journal_date(self.journal_link)

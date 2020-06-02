@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from typing import Set, List
 
 from categories import Categories
@@ -20,11 +21,18 @@ class ExportItem:
     def _generate_rows(self) -> [[str]]:
         raise NotImplementedError()
 
-    def _process_set(self, authors: Set[str]) -> str:
+    def _process_set(self, items: Set[str]) -> str:
         assert self._and_symbol is not None
-        if authors is None:
+        if items is None:
             return ''
-        return ' {} '.format(self._and_symbol).join(authors)
+        return ' {} '.format(self._and_symbol).join(items)
+
+    def _process_authors(self, authors: Set[str]) -> str:
+        s = self._process_set(authors)
+        # hacky postprocessing
+        if len(s.replace('©', '').strip()) == 0 or len(s) >= 300:
+            return ''
+        return self._process_set(authors)
 
     def get_lines(self) -> List[str]:
         return [self._separator.join(row) + '\n' for row in
@@ -54,7 +62,7 @@ class ExportItemJournalEndnote(ExportItem):
     def _generate_rows(self) -> List[List[str]]:
         rows = list()
         for item in self._result.results:
-            authors = self._process_set(item.authors)
+            authors = self._process_authors(item.authors)
             topics = self._process_set(item.topics)
             src_info = item.source.data
             rows.append(self._clean_list(
@@ -76,12 +84,12 @@ class ExportItemWebEndnote(ExportItem):
         self._and_symbol = '//'
 
     def _generate_headings(self) -> List[str]:
-        return ['Author', 'Title', 'Update Date', 'Label', 'Keywords', 'URL']
+        return ['Author', 'Title', 'Last Update Date', 'Label', 'Keywords', 'URL']
 
     def _generate_rows(self) -> List[List[str]]:
         rows = list()
         for item in self._result.results:
-            authors = self._process_set(item.authors)
+            authors = self._process_authors(item.authors)
             topics = self._process_set(item.topics)
             src_info = item.source.data
             rows.append(
@@ -94,6 +102,7 @@ class ExportItemExcel(ExportItemJournalEndnote):
         super().__init__(result, cat_id)
         self._ref_type = ref_type
         self._and_symbol = ';'
+        self._title = None
 
     def _generate_headings(self) -> [str]:
         return ['Erscheinungsdatum', 'Jahr', 'Autor', 'Titel', 'Label', 'Fachbereich', 'Referenztyp', 'Stichworte',
@@ -102,7 +111,7 @@ class ExportItemExcel(ExportItemJournalEndnote):
     def _generate_rows(self) -> [[str]]:
         rows = list()
         for item in self._result.results:
-            authors = self._process_set(item.authors)
+            authors = self._process_authors(item.authors)
             topics = self._process_set(item.topics)
             src_info = item.source.data
             rows.append(self._clean_list(

@@ -1,8 +1,9 @@
 import re
+from datetime import datetime
 from enum import Enum
-from typing import Optional
+from typing import Optional, Union
 
-from consts import date_to_number
+from consts import date_to_number, parse_date
 
 
 class Semantic(Enum):
@@ -19,12 +20,34 @@ class SrcInfo:
 
     def __init__(self, year: str = None, volume: str = None, number: str = None, page: str = None, doi: str = None,
                  date: str = None):
-        self.year: Optional[str] = year
+        self._year: Optional[str] = year
         self.volume: Optional[str] = volume
         self.number: Optional[str] = number
         self.page: Optional[str] = page
         self.doi: Optional[str] = doi
-        self.date: Optional[str] = date
+        self._date: Optional[datetime] = date
+
+    @property
+    def date(self) -> Optional[str]:
+        if self._date is None:
+            return None
+        return self._date.strftime('%Y-%m-%d')
+
+    @date.setter
+    def date(self, value: Union[None, str, datetime]):
+        if type(value) is str:
+            self._date = parse_date(value)
+        else:
+            self._date = value
+
+    @property
+    def year(self) -> Optional[str]:
+        if self._year is not None:
+            return self._year
+        elif self._date is not None:
+            return str(self._date.year)
+        else:
+            return None
 
     def __str__(self):
         return """  year: {}
@@ -37,11 +60,10 @@ class SrcInfo:
 
 
 class SrcParser:
-
     _patterns = {
         # Deutsches Ärzteblatt
-        16: (re.compile('.*?(\d*);\s*(\d*)\((\d*)\):\s*A-(\d*)'),
-             (Semantic.YEAR, Semantic.VOLUME, Semantic.NUMBER, Semantic.PAGE)),
+        16: (re.compile('.*?(\d*);\s*(\d*)\(([\d-]*)\):(?:\s*A-(\d*)|(?:\s*\[(\d*)\]))'),
+             (Semantic.YEAR, Semantic.VOLUME, Semantic.NUMBER, Semantic.PAGE, Semantic.PAGE)),
         # Dtsch Arztebl 2020; 117(21): A-1128 / B-947
         # Deutsches Ärzteblatt PP
         32: (re.compile(
@@ -90,29 +112,30 @@ class SrcParser:
                 self._process_item(semantic[i], groups[i])
         else:
             self._process_item(semantic, groups[0])
+        self._post_process_item()
 
     def _process_item(self, semantic, value: Optional[str]):
-        if semantic is Semantic.VOLUME:
+        if semantic is Semantic.VOLUME and value is not None:
             self.data.volume = value
-        elif semantic is Semantic.DATE:
+        elif semantic is Semantic.DATE and value is not None:
             self.data.date = value
-        elif semantic is Semantic.NUMBER:
+        elif semantic is Semantic.NUMBER and value is not None:
             self.data.number = value
-        elif semantic is Semantic.YEAR:
-            self.data.year = value
-        elif semantic is Semantic.DOI:
+        elif semantic is Semantic.YEAR and value is not None:
+            self.data._year = value
+        elif semantic is Semantic.DOI and value is not None:
             self.data.doi = value
-        elif semantic is Semantic.PAGE:
+        elif semantic is Semantic.PAGE and value is not None:
             self.data.page = value
 
     def _post_process_item(self):
         if self._category == 32:  # PP
             split_number = self.data.number.split(' ')
             if split_number is not None and len(split_number) == 2:
-                self.data.year = split_number[1]
+                self.data._year = split_number[1]
                 nr = date_to_number.get(split_number[0], None)
                 if nr is not None:
-                    self.data.number = '{}/{}'.format(nr, self.data.year)
+                    self.data.number = '{}/{}'.format(nr, self.data._year)
 
     def __str__(self):
         return str(self.data)
