@@ -76,12 +76,13 @@ class ScrapeArticle:
                             break
             else:
                 text = news_article.text.replace('Anzeige', '')
-                start_index = text.index('©') + 1
-                c = text[start_index:]
-                end_index = c.find('/aerzteblatt.de')
-                if end_index is None:
-                    end_index = 20
-                c_string = c[:end_index]
+                if '@' in text:
+                    start_index = text.index('©') + 1
+                    c = text[start_index:]
+                    end_index = c.find('/aerzteblatt.de')
+                    if end_index is None:
+                        end_index = 20
+                    c_string = c[:end_index]
 
             if c_string is not None:
                 c_s = [s.strip() for s in c_string.split('/')]
