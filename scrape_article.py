@@ -76,7 +76,7 @@ class ScrapeArticle:
                             break
             else:
                 text = news_article.text.replace('Anzeige', '')
-                if '@' in text:
+                if '©' in text:
                     start_index = text.index('©') + 1
                     c = text[start_index:]
                     end_index = c.find('/aerzteblatt.de')
